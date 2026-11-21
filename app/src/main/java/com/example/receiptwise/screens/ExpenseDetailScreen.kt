@@ -16,18 +16,38 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.receiptwise.data.SampleData
+import com.example.receiptwise.data.AppDatabase
+import com.example.receiptwise.data.Expense
 
 @Composable
 fun ExpenseDetailScreen(expenseId: Int, onBackClick: () -> Unit) {
 
-    // use the id we received to find the correct expense
-    val expense = SampleData.findExpenseById(expenseId)
+    val context = LocalContext.current
+    val dao = remember { AppDatabase.getInstance(context).expenseDao() }
+
+    // The expense starts as null and is filled in once the database answers
+    var expense by remember { mutableStateOf<Expense?>(null) }
+    var loaded by remember { mutableStateOf(false) }
+
+    // Runs once when the screen opens. It uses the id to load the expense from the database.
+    LaunchedEffect(expenseId) {
+        expense = dao.getById(expenseId)
+        loaded = true
+    }
+
+    // A copy, so Kotlin allows us to use it safely after the null check
+    val item = expense
 
     Column(
         modifier = Modifier
@@ -35,21 +55,13 @@ fun ExpenseDetailScreen(expenseId: Int, onBackClick: () -> Unit) {
             .verticalScroll(rememberScrollState())
             .padding(16.dp)
     ) {
-        TextButton(onClick = onBackClick) {
-            Text("< Back")
-        }
+        TextButton(onClick = onBackClick) { Text("< Back") }
 
-        if (expense == null) {
-            Text(text = "Sorry, this expense was not found.")
-        } else {
-            Text(
-                text = expense.shopName,
-                fontSize = 28.sp,
-                fontWeight = FontWeight.Bold
-            )
+        if (item != null) {
+            Text(item.shopName, fontSize = 28.sp, fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(16.dp))
 
-            // a box where the receipt photo will show later
+            // Space where the receipt photo will be shown after Sprint 3
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -61,23 +73,24 @@ fun ExpenseDetailScreen(expenseId: Int, onBackClick: () -> Unit) {
             }
             Spacer(modifier = Modifier.height(16.dp))
 
-            DetailRow(label = "Date", value = expense.date)
-            DetailRow(label = "Category", value = expense.category)
-            DetailRow(label = "Amount", value = "£" + String.format("%.2f", expense.amount))
+            DetailRow("Date", item.date)
+            DetailRow("Category", item.category)
+            DetailRow("Amount", "£" + String.format("%.2f", item.amount))
+        } else if (loaded) {
+            // Only shown after loading finished and nothing was found
+            Text("Sorry, this expense was not found.")
         }
     }
 }
 
-// One line with a label on the left and the value on the right.
+// One line with a label on the left and the value on the right
 @Composable
 fun DetailRow(label: String, value: String) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 8.dp),
+        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        Text(text = label, fontWeight = FontWeight.Bold)
-        Text(text = value)
+        Text(label, fontWeight = FontWeight.Bold)
+        Text(value)
     }
 }
