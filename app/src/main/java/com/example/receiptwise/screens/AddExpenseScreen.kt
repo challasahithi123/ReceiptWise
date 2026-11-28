@@ -34,19 +34,26 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-// This screen lets the user type in an expense by hand and save it
+// This screen is the form to check, change and save an expense.
+// The start values come from the scan. They are empty when the user adds an expense by hand.
 @Composable
-fun AddExpenseScreen(onDone: () -> Unit) {
-
+fun AddExpenseScreen(
+    startShop: String,
+    startDate: String,
+    startAmount: String,
+    onDone: () -> Unit
+) {
     val context = LocalContext.current
     val dao = remember { AppDatabase.getInstance(context).expenseDao() }
-    // The scope is needed because saving to the database is a suspend function
     val scope = rememberCoroutineScope()
 
-    // These hold what the user has typed. When they change, the screen is drawn again.
-    var shopName by remember { mutableStateOf("") }
-    var date by remember { mutableStateOf(SimpleDateFormat("dd MMM yyyy", Locale.UK).format(Date())) }
-    var amountText by remember { mutableStateOf("") }
+    // Today's date is used when the scan did not find a date
+    val today = SimpleDateFormat("dd MMM yyyy", Locale.UK).format(Date())
+
+    // These hold what is in the form. They begin with the values from the scan.
+    var shopName by remember { mutableStateOf(startShop) }
+    var date by remember { mutableStateOf(if (startDate.isBlank()) today else startDate) }
+    var amountText by remember { mutableStateOf(startAmount) }
     var category by remember { mutableStateOf("Food") }
     var error by remember { mutableStateOf("") }
 
@@ -59,9 +66,9 @@ fun AddExpenseScreen(onDone: () -> Unit) {
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Text("Add Expense", fontSize = 26.sp, fontWeight = FontWeight.Bold)
+        Text("Check Expense", fontSize = 26.sp, fontWeight = FontWeight.Bold)
 
-        // take(30) cuts the text at 30 letters, so very long text cannot be typed in
+        // take() cuts the text to a maximum length so very long text cannot be typed
         OutlinedTextField(
             value = shopName,
             onValueChange = { shopName = it.take(30) },
@@ -76,7 +83,6 @@ fun AddExpenseScreen(onDone: () -> Unit) {
             singleLine = true,
             modifier = Modifier.fillMaxWidth()
         )
-        // The decimal keyboard shows numbers only, which helps the user type the amount
         OutlinedTextField(
             value = amountText,
             onValueChange = { amountText = it.take(9) },
@@ -87,7 +93,6 @@ fun AddExpenseScreen(onDone: () -> Unit) {
         )
 
         Text("Category")
-        // One chip for each category. The chip that matches the chosen category is highlighted.
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             categories.forEach { name ->
                 FilterChip(
@@ -98,17 +103,16 @@ fun AddExpenseScreen(onDone: () -> Unit) {
             }
         }
 
-        // Only shows when there is a problem with what was typed
+        // Only shows when something is wrong with the form
         if (error.isNotEmpty()) {
             Text(error, color = MaterialTheme.colorScheme.error)
         }
 
         Button(
             onClick = {
-                // toDoubleOrNull gives null if the text is not a proper number
                 val amount = amountText.toDoubleOrNull()
 
-                // Check the input before saving, so wrong data never reaches the database
+                // Check the form before saving, so wrong data never reaches the database
                 if (shopName.isBlank() || date.isBlank()) {
                     error = "Please fill in the shop name and the date."
                 } else if (amount == null || amount <= 0) {

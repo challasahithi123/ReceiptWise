@@ -35,7 +35,7 @@ fun AppNavigation() {
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route
 
-    // The bottom bar only shows on the three main screens (not on add or detail)
+    // The bottom bar only shows on the three main screens
     val showBottomBar = currentRoute == Routes.EXPENSES ||
             currentRoute == Routes.SCAN ||
             currentRoute == Routes.INSIGHTS
@@ -74,15 +74,28 @@ fun AppNavigation() {
         ) {
             composable(Routes.EXPENSES) {
                 ExpensesScreen(
-                    // sends the id of the tapped expense to the detail screen
                     onExpenseClick = { expenseId -> navController.navigate("detail/$expenseId") },
-                    onAddClick = { navController.navigate(Routes.ADD) }
+                    onAddClick = { navController.navigate(Routes.ADD) } // empty form
                 )
             }
 
-            composable(Routes.ADD) {
-                // after saving or cancelling, go back to the list
-                AddExpenseScreen(onDone = { navController.popBackStack() })
+            // The form can receive the shop, date and amount that the scan found.
+            // The default value is empty text, so opening it by hand also works.
+            composable(
+                route = Routes.ADD_ROUTE,
+                arguments = listOf(
+                    navArgument("shop") { type = NavType.StringType; defaultValue = "" },
+                    navArgument("date") { type = NavType.StringType; defaultValue = "" },
+                    navArgument("amount") { type = NavType.StringType; defaultValue = "" }
+                )
+            ) { entry ->
+                AddExpenseScreen(
+                    startShop = entry.arguments?.getString("shop") ?: "",
+                    startDate = entry.arguments?.getString("date") ?: "",
+                    startAmount = entry.arguments?.getString("amount") ?: "",
+                    // after saving or cancelling, always go back to the list
+                    onDone = { goToTab(navController, Routes.EXPENSES) }
+                )
             }
 
             composable(Routes.SCAN) { ScanReceiptScreen() }
@@ -92,7 +105,6 @@ fun AppNavigation() {
                 route = Routes.DETAIL,
                 arguments = listOf(navArgument("expenseId") { type = NavType.IntType })
             ) { entry ->
-                // receives the id sent from the list (0 if nothing was sent)
                 val expenseId = entry.arguments?.getInt("expenseId") ?: 0
                 ExpenseDetailScreen(
                     expenseId = expenseId,
@@ -103,7 +115,7 @@ fun AppNavigation() {
     }
 }
 
-// Used when a bottom bar button is pressed
+// Used when a bottom bar button is pressed (and to return to the list)
 fun goToTab(navController: NavController, route: String) {
     navController.navigate(route) {
         popUpTo(Routes.EXPENSES) { saveState = true }
