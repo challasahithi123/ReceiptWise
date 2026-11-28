@@ -65,4 +65,13 @@ dependencies {
     implementation("androidx.room:room-ktx:2.8.5")
     // KSP builds the database code for us while the app compiles
     ksp("androidx.room:room-compiler:2.8.5")
+
+    // CameraX is the library that opens the camera
+    implementation("androidx.camera:camera-core:1.4.2")
+    implementation("androidx.camera:camera-camera2:1.4.2")
+    implementation("androidx.camera:camera-lifecycle:1.4.2")
+    implementation("androidx.camera:camera-view:1.4.2")
+
+// ML Kit reads the text from a photo, and it works on the phone
+    implementation("com.google.mlkit:text-recognition:16.0.1")
 }
