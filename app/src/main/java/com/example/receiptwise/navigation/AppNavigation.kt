@@ -1,5 +1,6 @@
 package com.example.receiptwise.navigation
 
+import android.net.Uri
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -98,7 +99,16 @@ fun AppNavigation() {
                 )
             }
 
-            composable(Routes.SCAN) { ScanReceiptScreen() }
+            composable(Routes.SCAN) {
+                ScanReceiptScreen(
+                    onScanned = { shop, date, amount ->
+                        // Uri.encode makes the text safe to put inside the route
+                        navController.navigate(
+                            "add?shop=${Uri.encode(shop)}&date=${Uri.encode(date)}&amount=${Uri.encode(amount)}"
+                        )
+                    }
+                )
+            }
             composable(Routes.INSIGHTS) { InsightsSettingsScreen() }
 
             composable(
